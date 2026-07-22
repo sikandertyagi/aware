@@ -1,11 +1,32 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, BookOpen } from 'lucide-react'
+import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, BookOpen, Play } from 'lucide-react'
 import { modules } from '../data/modules'
 import { quizzes } from '../data/quizzes'
 import { useProgress } from '../hooks/useProgress'
 import Quiz from './Quiz'
 import { useState } from 'react'
 import { moduleContent } from '../data/content'
+import HoneytrapChat from '../modules/HoneytrapChat'
+import PhishingInbox from '../modules/PhishingInbox'
+import SocialMediaOSINT from '../modules/SocialMediaOSINT'
+import CyberFraudSim from '../modules/CyberFraudSim'
+import PasswordCracker from '../modules/PasswordCracker'
+
+const simulations = {
+  'honeytrap': HoneytrapChat,
+  'phishing': PhishingInbox,
+  'social-media': SocialMediaOSINT,
+  'cyber-fraud': CyberFraudSim,
+  'password-security': PasswordCracker,
+}
+
+const simLabels = {
+  'honeytrap': 'Honeytrap Chat Simulation',
+  'phishing': 'Phishing Inbox Challenge',
+  'social-media': 'OSINT Attack Simulation',
+  'cyber-fraud': 'CEO Fraud Simulation',
+  'password-security': 'Password Cracker',
+}
 
 export default function ModulePage() {
   const { moduleId } = useParams()
@@ -13,7 +34,9 @@ export default function ModulePage() {
   const questions = quizzes[moduleId]
   const content = moduleContent[moduleId]
   const { updateModuleProgress, getModuleProgress } = useProgress()
-  const [showQuiz, setShowQuiz] = useState(false)
+  const SimComponent = simulations[moduleId]
+  const hasSim = !!SimComponent
+  const [activeTab, setActiveTab] = useState(hasSim ? 'simulation' : 'learn')
   const progress = getModuleProgress(moduleId)
 
   if (!mod || !content) {
@@ -25,6 +48,11 @@ export default function ModulePage() {
     )
   }
 
+  const tabs = []
+  if (hasSim) tabs.push({ id: 'simulation', label: simLabels[moduleId] || 'Simulation', icon: Play })
+  tabs.push({ id: 'learn', label: 'Learn', icon: BookOpen })
+  tabs.push({ id: 'quiz', label: progress ? 'Retake Quiz' : 'Quiz', icon: CheckCircle })
+
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto">
       <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors mb-6 text-sm font-medium">
@@ -32,7 +60,7 @@ export default function ModulePage() {
       </Link>
 
       <div className="animate-fade-in">
-        <div className="flex items-start gap-4 mb-8">
+        <div className="flex items-start gap-4 mb-6">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: mod.bgColor }}>
             <mod.icon className="w-8 h-8" style={{ color: mod.color }} />
           </div>
@@ -50,8 +78,31 @@ export default function ModulePage() {
           </div>
         </div>
 
-        {!showQuiz ? (
-          <>
+        <div className="flex gap-2 mb-6 border-b border-gray-200 pb-0">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-xl border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'border-indigo-500 text-indigo-600 bg-indigo-50/50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'simulation' && SimComponent && (
+          <div className="animate-fade-in">
+            <SimComponent />
+          </div>
+        )}
+
+        {activeTab === 'learn' && (
+          <div className="animate-fade-in">
             <div className="space-y-6 mb-8">
               {content.sections.map((section, i) => (
                 <div key={i} className={`animate-fade-in stagger-${i + 1} bg-white rounded-2xl p-6 shadow-sm border border-gray-100`}>
@@ -116,23 +167,17 @@ export default function ModulePage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
 
-            <div className="text-center">
-              <button
-                onClick={() => setShowQuiz(true)}
-                className="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-colors font-semibold text-lg shadow-lg shadow-indigo-200 hover:shadow-indigo-300"
-              >
-                <BookOpen className="w-5 h-5" />
-                {progress ? 'Retake Quiz' : 'Take the Quiz'}
-              </button>
-            </div>
-          </>
-        ) : (
-          <Quiz
-            questions={questions}
-            moduleId={moduleId}
-            onComplete={(score, total) => updateModuleProgress(moduleId, score, total)}
-          />
+        {activeTab === 'quiz' && (
+          <div className="animate-fade-in">
+            <Quiz
+              questions={questions}
+              moduleId={moduleId}
+              onComplete={(score, total) => updateModuleProgress(moduleId, score, total)}
+            />
+          </div>
         )}
       </div>
     </div>
